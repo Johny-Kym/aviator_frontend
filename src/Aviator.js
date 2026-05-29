@@ -266,23 +266,21 @@ export default function AviatorGame() {
 
   useEffect(() => {
     // Initial game state sync
-    socket.on("game:state", ({ state, startTime, history,crashPoint }) => {
-      // History from server is array of objects, extract crashPoint
-      // Parse history correctly
+    socket.on("game:state", ({ state, startTime, history, crashPoint }) => {
       const h = (history || []).map((item) =>
         typeof item === "object"
           ? parseFloat(item.crashPoint)
           : parseFloat(item),
       );
       setHistory(h);
+
       if (state === "flying" && startTime) {
         startTimeRef.current = startTime;
         crashPointRef.current = crashPoint;
-
         gameStateRef.current = "flying";
         setGameState("flying");
         setStatusText("FLYING");
-        startAnimation(); // 👈 starts animation immediately with server time
+        startAnimation(startTime); // 👈 pass server startTime
       }
     });
 
@@ -310,17 +308,15 @@ export default function AviatorGame() {
     socket.on("round:countdown", ({ countdown }) => {
       setStatusText(`NEXT IN ${countdown}s`);
     });
-
     socket.on("round:start", ({ startTime, crashPoint }) => {
       startTimeRef.current = startTime;
       crashPointRef.current = crashPoint;
       gameStateRef.current = "flying";
-      startTimeRef.current = startTime;
       setGameState("flying");
       setStatusText("FLYING");
       trailRef.current = [];
       particlesRef.current = [];
-      startAnimation();
+      startAnimation(startTime); // 👈 pass server startTime
     });
 
     socket.on("round:crash", ({ crashPoint }) => {
@@ -559,9 +555,9 @@ export default function AviatorGame() {
     animRef.current = requestAnimationFrame(drawWaiting);
   }
 
-  function startAnimation() {
+  function startAnimation(serverStartTime = null) {
     cancelAnimationFrame(animRef.current);
-    const localStart = Date.now(); // 👈 add this
+    const localStart = serverStartTime || Date.now(); // 👈 use server time if provided
 
     const loop = (now) => {
       if (gameStateRef.current !== "flying") return;
@@ -571,8 +567,7 @@ export default function AviatorGame() {
       const W = canvas.width,
         H = canvas.height;
 
-      // 👇 use localStart instead of startTimeRef.current
-      const elapsed = (Date.now() - localStart) / 1000;
+      const elapsed = (Date.now() - localStart) / 1000; // 👈 calculates from server start
       const m = Math.pow(Math.E, elapsed * 0.06);
 
       const { enabled, val } = autoCashoutRef.current;
