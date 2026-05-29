@@ -226,6 +226,7 @@ export default function AviatorGame() {
   const gameStateRef = useRef("waiting");
   const hasBetRef = useRef(false);
   const autoCashoutRef = useRef({ enabled: false, val: 2.0 });
+  const isAnimatingRef = useRef(false);
 
   const [balance, setBalance] = useState(0);
   const [bet, setBetState] = useState(10);
@@ -323,6 +324,7 @@ export default function AviatorGame() {
       setStatusText(`NEXT IN ${countdown}s`);
     });
     socket.on("round:start", ({ startTime, crashPoint }) => {
+      cancelAnimationFrame(animRef.current);
       startTimeRef.current = startTime;
       crashPointRef.current = crashPoint;
       gameStateRef.current = "flying";
@@ -334,8 +336,8 @@ export default function AviatorGame() {
     });
 
     socket.on("round:crash", ({ crashPoint }) => {
-      gameStateRef.current = "crashed";
       cancelAnimationFrame(animRef.current);
+      gameStateRef.current = "crashed";
       setGameState("crashed");
       setStatusText("CRASHED");
       setCrashedAt(crashPoint);
@@ -554,29 +556,35 @@ export default function AviatorGame() {
     ctx.fill();
     ctx.restore();
   }
-
   function drawWaiting() {
-    if (gameStateRef.current !== "waiting") return; // 👈 guard
-    if (!canvasRef.current) return; // 👈 guard
+    cancelAnimationFrame(animRef.current); // 👈 cancel any existing
+    animRef.current = null;
 
-    const canvas = canvasRef.current;
-    const ctx = canvas.getContext("2d");
-    const W = canvas.width,
-      H = canvas.height;
-
-    ctx.clearRect(0, 0, W, H);
-    drawBg(ctx, W, H);
-    drawGrid(ctx, W, H);
-    drawPlane(ctx, W * 0.12, H * 0.75, 0, "#f5c842", 0.85);
-
-    animRef.current = requestAnimationFrame(drawWaiting);
+    const loop = () => {
+      if (gameStateRef.current !== "waiting") return; // 👈 stop if state changed
+      const canvas = canvasRef.current;
+      if (!canvas) return;
+      const ctx = canvas.getContext("2d");
+      const W = canvas.width,
+        H = canvas.height;
+      ctx.clearRect(0, 0, W, H);
+      drawBg(ctx, W, H);
+      drawGrid(ctx, W, H);
+      drawPlane(ctx, W * 0.12, H * 0.75, 0, "#f5c842", 0.85);
+      animRef.current = requestAnimationFrame(loop);
+    };
+    animRef.current = requestAnimationFrame(loop);
   }
   function startAnimation(serverStartTime = null) {
     cancelAnimationFrame(animRef.current);
     const localStart = serverStartTime || Date.now(); // 👈 use server time if provided
 
     const loop = (now) => {
-      if (gameStateRef.current !== "flying") return;
+      if (gameStateRef.current !== "flying") {
+        isAnimatingRef.current = false; // 👈 add this
+        return;
+      }
+      isAnimatingRef.current = true;
       const canvas = canvasRef.current;
       if (!canvas) return;
       const ctx = canvas.getContext("2d");
