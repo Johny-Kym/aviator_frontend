@@ -266,8 +266,9 @@ export default function AviatorGame() {
 
   useEffect(() => {
     // Initial game state sync
-    socket.on("game:state", ({ state, startTime, history }) => {
+    socket.on("game:state", ({ state, startTime, history,crashPoint }) => {
       // History from server is array of objects, extract crashPoint
+      // Parse history correctly
       const h = (history || []).map((item) =>
         typeof item === "object"
           ? parseFloat(item.crashPoint)
@@ -276,10 +277,12 @@ export default function AviatorGame() {
       setHistory(h);
       if (state === "flying" && startTime) {
         startTimeRef.current = startTime;
+        crashPointRef.current = crashPoint;
+
         gameStateRef.current = "flying";
         setGameState("flying");
         setStatusText("FLYING");
-        startAnimation();
+        startAnimation(); // 👈 starts animation immediately with server time
       }
     });
 
