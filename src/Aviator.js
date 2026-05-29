@@ -35,9 +35,28 @@ const STYLES = `
   .av-balance { font-size: 13px; color: #a0aec0; font-family: 'Share Tech Mono', monospace; }
   .av-balance span { color: #68d391; font-weight: 700; font-size: 15px; }
 
-  .av-history { display: flex; gap: 5px; flex-wrap: nowrap; overflow: hidden; }
+.av-history { 
+  display: flex; 
+  gap: 5px; 
+  flex-wrap: nowrap; 
+  overflow: hidden;
+  align-items: center;  /* 👈 add this */
+  height: 28px;         /* 👈 add this */
+}
 
-  .hist-chip { font-family: 'Orbitron', sans-serif; font-size: 10px; font-weight: 700; padding: 3px 8px; border-radius: 6px; white-space: nowrap; flex-shrink: 0; }
+  .hist-chip { 
+  font-family: 'Orbitron', sans-serif; 
+  font-size: 10px; 
+  font-weight: 700; 
+  padding: 3px 8px; 
+  border-radius: 6px; 
+  white-space: nowrap; 
+  flex-shrink: 0;
+  display: inline-block;  /* 👈 add */
+  height: auto !important; /* 👈 add */
+  width: auto !important;  /* 👈 add */
+  align-self: center;      /* 👈 add */
+}
   .hist-low  { background: rgba(252,69,69,0.18);   color: #fc6b6b; border: 1px solid rgba(252,69,69,0.3); }
   .hist-mid  { background: rgba(245,200,66,0.15);  color: #f5c842; border: 1px solid rgba(245,200,66,0.3); }
   .hist-high { background: rgba(104,211,145,0.15); color: #68d391; border: 1px solid rgba(104,211,145,0.3); }
@@ -817,7 +836,22 @@ export default function AviatorGame() {
         {history.map((v, i) => {
           const val = typeof v === "object" ? v.crashPoint : v;
           return (
-            <span key={i} className={histChipClass(val)}>
+            <span
+              key={i}
+              className={histChipClass(val)}
+              style={{
+                display: "inline-block",
+                padding: "3px 8px",
+                borderRadius: "6px",
+                fontSize: "10px",
+                fontWeight: "700",
+                whiteSpace: "nowrap",
+                flexShrink: 0,
+                height: "auto", // 👈 fixes bar height issue
+                width: "auto", // 👈 fixes bar width issue
+                fontFamily: "Orbitron, sans-serif",
+              }}
+            >
               {parseFloat(val).toFixed(2)}x
             </span>
           );
