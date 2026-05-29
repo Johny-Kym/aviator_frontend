@@ -241,7 +241,7 @@ export default function AviatorGame() {
   const [toast, setToast] = useState(null);
   const [liveWin, setLiveWin] = useState(null);
   const [crashedAt, setCrashedAt] = useState(null);
-
+  const serverOffsetRef = useRef(0); // 👈 add with other refs
   // Phone & deposit
   const [phone, setPhone] = useState("");
   const [registeredPhone, setRegisteredPhone] = useState("");
@@ -267,23 +267,32 @@ export default function AviatorGame() {
 
   useEffect(() => {
     // Initial game state sync
-    socket.on("game:state", ({ state, startTime, history, crashPoint }) => {
-      const h = (history || []).map((item) =>
-        typeof item === "object"
-          ? parseFloat(item.crashPoint)
-          : parseFloat(item),
-      );
-      setHistory(h);
+    socket.on(
+      "game:state",
+      ({ state, startTime, history, crashPoint, serverTime }) => {
+        // Calculate offset between server and client time
+        if (serverTime) {
+          serverOffsetRef.current = serverTime - Date.now(); // 👈 calculate offset
+          console.log("Server offset:", serverOffsetRef.current, "ms");
+        }
 
-      if (state === "flying" && startTime) {
-        startTimeRef.current = startTime;
-        crashPointRef.current = crashPoint;
-        gameStateRef.current = "flying";
-        setGameState("flying");
-        setStatusText("FLYING");
-        startAnimation(startTime); // 👈 pass server startTime
-      }
-    });
+        const h = (history || []).map((item) =>
+          typeof item === "object"
+            ? parseFloat(item.crashPoint)
+            : parseFloat(item),
+        );
+        setHistory(h);
+
+        if (state === "flying" && startTime) {
+          startTimeRef.current = startTime;
+          crashPointRef.current = crashPoint;
+          gameStateRef.current = "flying";
+          setGameState("flying");
+          setStatusText("FLYING");
+          startAnimation(startTime);
+        }
+      },
+    );
 
     socket.on("round:waiting", ({ countdown }) => {
       cancelAnimationFrame(animRef.current); // 👈 cancel first
@@ -323,8 +332,10 @@ export default function AviatorGame() {
     socket.on("round:countdown", ({ countdown }) => {
       setStatusText(`NEXT IN ${countdown}s`);
     });
-    socket.on("round:start", ({ startTime, crashPoint }) => {
-      cancelAnimationFrame(animRef.current);
+    socket.on("round:start", ({ startTime, crashPoint, serverTime }) => {
+      if (serverTime) {
+        serverOffsetRef.current = serverTime - Date.now(); // 👈 update offset
+      }
       startTimeRef.current = startTime;
       crashPointRef.current = crashPoint;
       gameStateRef.current = "flying";
@@ -332,7 +343,7 @@ export default function AviatorGame() {
       setStatusText("FLYING");
       trailRef.current = [];
       particlesRef.current = [];
-      startAnimation(startTime); // 👈 pass server startTime
+      startAnimation(startTime);
     });
 
     socket.on("round:crash", ({ crashPoint }) => {
@@ -580,8 +591,6 @@ export default function AviatorGame() {
     animRef.current = null;
     isAnimatingRef.current = false;
 
-    // 👇 if server startTime provided use it directly
-    // if not, use current time
     const localStart = serverStartTime ? serverStartTime : Date.now();
 
     const loop = (now) => {
@@ -596,8 +605,9 @@ export default function AviatorGame() {
       const W = canvas.width,
         H = canvas.height;
 
-      // 👇 always calculate from localStart (which is server time)
-      const elapsed = (Date.now() - localStart) / 1000;
+      // 👇 adjust for server/client time difference
+      const clientNow = Date.now() + serverOffsetRef.current;
+      const elapsed = (clientNow - localStart) / 1000;
       const m = Math.pow(Math.E, elapsed * 0.06);
 
       const { enabled, val } = autoCashoutRef.current;
