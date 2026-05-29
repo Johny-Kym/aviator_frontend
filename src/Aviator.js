@@ -285,10 +285,13 @@ export default function AviatorGame() {
     });
 
     socket.on("round:waiting", ({ countdown }) => {
-      // 👇 cancel animation first
-      cancelAnimationFrame(animRef.current);
+      cancelAnimationFrame(animRef.current); // 👈 cancel first
+      animRef.current = null; // 👈 clear it
+
       gameStateRef.current = "waiting";
       hasBetRef.current = false;
+      crashPointRef.current = null;
+
       setGameState("waiting");
       setHasBet(false);
       setMultiplier(1.0);
@@ -297,9 +300,8 @@ export default function AviatorGame() {
       setStatusText(`NEXT IN ${countdown}s`);
       trailRef.current = [];
       particlesRef.current = [];
-      crashPointRef.current = null; // 👈 clear crash point
 
-      // 👇 reset multiplier display
+      // reset displays
       const multEl = document.getElementById("av-mult-display");
       if (multEl) {
         multEl.textContent = "WAITING...";
@@ -307,14 +309,16 @@ export default function AviatorGame() {
         multEl.style.color = "#f5c842";
       }
 
-      // 👇 reset button
       const btnEl = document.getElementById("av-action-btn");
       if (btnEl) btnEl.textContent = "PLACE BET";
 
-      // 👇 start waiting animation
-      drawWaiting();
+      // 👇 delay drawWaiting to let animation fully stop
+      setTimeout(() => {
+        if (gameStateRef.current === "waiting") {
+          drawWaiting();
+        }
+      }, 100);
     });
-
     socket.on("round:countdown", ({ countdown }) => {
       setStatusText(`NEXT IN ${countdown}s`);
     });
@@ -552,19 +556,21 @@ export default function AviatorGame() {
   }
 
   function drawWaiting() {
-    if (gameStateRef.current !== "waiting") return;
+    if (gameStateRef.current !== "waiting") return; // 👈 guard
+    if (!canvasRef.current) return; // 👈 guard
+
     const canvas = canvasRef.current;
-    if (!canvas) return;
     const ctx = canvas.getContext("2d");
     const W = canvas.width,
       H = canvas.height;
+
     ctx.clearRect(0, 0, W, H);
     drawBg(ctx, W, H);
     drawGrid(ctx, W, H);
     drawPlane(ctx, W * 0.12, H * 0.75, 0, "#f5c842", 0.85);
+
     animRef.current = requestAnimationFrame(drawWaiting);
   }
-
   function startAnimation(serverStartTime = null) {
     cancelAnimationFrame(animRef.current);
     const localStart = serverStartTime || Date.now(); // 👈 use server time if provided
