@@ -347,12 +347,14 @@ export default function AviatorGame() {
     socket.on("bet:error", ({ error }) => {
       showToast(error, "loss");
     });
-
     socket.on("cashout:success", ({ multiplier, winAmount, balance }) => {
       hasBetRef.current = false;
       setHasBet(false);
       setBalance(balance);
       setLiveWin(null);
+      // 👇 reset button text
+      const btnEl = document.getElementById("av-action-btn");
+      if (btnEl) btnEl.textContent = "NEXT ROUND";
       showToast(
         `+KES ${winAmount.toFixed(2)} at ${multiplier.toFixed(2)}x! 🎉`,
         "win",
@@ -616,6 +618,12 @@ export default function AviatorGame() {
         multEl.textContent = m.toFixed(2) + "x";
         multEl.style.color = m < 2 ? "#68d391" : m < 5 ? "#f5c842" : "#63b3ed";
         multEl.style.fontSize = "56px"; // 👈 add this
+      }
+      // 👇 add this
+      const btnEl = document.getElementById("av-action-btn");
+      if (btnEl && hasBetRef.current) {
+        const winAmount = (betRef.current * m).toFixed(2);
+        btnEl.textContent = `CASH OUT KES ${winAmount}`;
       }
       const winEl = document.getElementById("av-win-display");
       if (winEl && hasBetRef.current) {
@@ -953,7 +961,11 @@ export default function AviatorGame() {
         </div>
 
         <div className="av-action-section">
-          <button className={btnClass} onClick={handleAction}>
+          <button
+            className={btnClass}
+            onClick={handleAction}
+            id="av-action-btn"
+          >
             {btnText}
           </button>
           <div className="av-potential">
