@@ -688,7 +688,7 @@ export default function AviatorGame() {
     setDepositLoading(true);
     try {
       const res = await fetch(
-        "https://aviatorbackend-production.up.railway.app/api/mpesa/deposit",
+        "https://aviatorgame-production.up.railway.app/api/mpesa/deposit",
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
