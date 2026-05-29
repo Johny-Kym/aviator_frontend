@@ -577,11 +577,16 @@ export default function AviatorGame() {
   }
   function startAnimation(serverStartTime = null) {
     cancelAnimationFrame(animRef.current);
-    const localStart = serverStartTime || Date.now(); // 👈 use server time if provided
+    animRef.current = null;
+    isAnimatingRef.current = false;
+
+    // 👇 if server startTime provided use it directly
+    // if not, use current time
+    const localStart = serverStartTime ? serverStartTime : Date.now();
 
     const loop = (now) => {
       if (gameStateRef.current !== "flying") {
-        isAnimatingRef.current = false; // 👈 add this
+        isAnimatingRef.current = false;
         return;
       }
       isAnimatingRef.current = true;
@@ -591,7 +596,8 @@ export default function AviatorGame() {
       const W = canvas.width,
         H = canvas.height;
 
-      const elapsed = (Date.now() - localStart) / 1000; // 👈 calculates from server start
+      // 👇 always calculate from localStart (which is server time)
+      const elapsed = (Date.now() - localStart) / 1000;
       const m = Math.pow(Math.E, elapsed * 0.06);
 
       const { enabled, val } = autoCashoutRef.current;
