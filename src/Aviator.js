@@ -687,11 +687,14 @@ export default function AviatorGame() {
     }
     setDepositLoading(true);
     try {
-      const res = await fetch("http://localhost:5000/api/mpesa/deposit", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ phone: ph, amount: depositAmount }),
-      });
+      const res = await fetch(
+        "https://aviatorbackend-production.up.railway.app/api/mpesa/deposit",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ phone: ph, amount: depositAmount }),
+        },
+      );
       const data = await res.json();
       if (data.success) {
         showToast("STK push sent — check your phone 📱", "info");
