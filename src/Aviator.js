@@ -12,12 +12,12 @@ const STYLES = `
 
   .av-wrapper {
     display: grid;
-    grid-template-rows: auto auto 1fr auto auto;
+    grid-template-rows: auto fit-content 1fr auto auto;
     height: 100vh;
     max-width: 720px;
     margin: 0 auto;
     padding: 10px;
-    gap: 8px;
+    gap: 4px;
     background: #0a0e1a;
   }
 
@@ -41,7 +41,9 @@ const STYLES = `
   flex-wrap: nowrap; 
   overflow: hidden;
   align-items: center;  /* 👈 add this */
-  height: 28px;         /* 👈 add this */
+   height: 26px;       // 👈 fixed height removes extra space
+  margin: 0;          // 👈 remove any margin
+  padding: 0;          /* 👈 add this */
 }
 
   .hist-chip { 
@@ -282,6 +284,12 @@ export default function AviatorGame() {
     });
 
     socket.on("round:waiting", ({ countdown }) => {
+      const multEl = document.getElementById("av-mult-display");
+      if (multEl) {
+        multEl.textContent = "WAITING...";
+        multEl.style.fontSize = "24px"; // 👈 smaller when waiting
+        multEl.style.color = "#f5c842";
+      }
       gameStateRef.current = "waiting";
       hasBetRef.current = false;
       setGameState("waiting");
@@ -602,9 +610,17 @@ export default function AviatorGame() {
       drawTrail(ctx);
       drawParticles(ctx);
       drawPlane(ctx, px, py, t, "#68d391", 1.0);
-
-      setMultiplier(parseFloat(m.toFixed(2)));
-      if (hasBetRef.current) setLiveWin((betRef.current * m).toFixed(2));
+      // Direct DOM update — no re-render
+      const multEl = document.getElementById("av-mult-display");
+      if (multEl) {
+        multEl.textContent = m.toFixed(2) + "x";
+        multEl.style.color = m < 2 ? "#68d391" : m < 5 ? "#f5c842" : "#63b3ed";
+        multEl.style.fontSize = "56px"; // 👈 add this
+      }
+      const winEl = document.getElementById("av-win-display");
+      if (winEl && hasBetRef.current) {
+        winEl.textContent = "KES " + (betRef.current * m).toFixed(2);
+      }
 
       animRef.current = requestAnimationFrame(loop);
     };
@@ -862,14 +878,8 @@ export default function AviatorGame() {
       <div className="av-canvas-area" ref={canvasAreaRef}>
         <canvas ref={canvasRef} />
         {gameState !== "crashed" && (
-          <div className="av-mult-overlay">
-            <div
-              className="av-mult-value"
-              style={{
-                color: gameState === "waiting" ? "#f5c842" : multCol,
-                fontSize: gameState === "waiting" ? 24 : 56,
-              }}
-            >
+          <div id="av-mult-display" className="av-mult-overlay">
+            <div id="av-mult-display" className="av-mult-value">
               {gameState === "waiting"
                 ? "WAITING..."
                 : `${multiplier.toFixed(2)}x`}
