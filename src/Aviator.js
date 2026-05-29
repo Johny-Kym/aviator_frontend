@@ -285,12 +285,8 @@ export default function AviatorGame() {
     });
 
     socket.on("round:waiting", ({ countdown }) => {
-      const multEl = document.getElementById("av-mult-display");
-      if (multEl) {
-        multEl.textContent = "WAITING...";
-        multEl.style.fontSize = "24px"; // 👈 smaller when waiting
-        multEl.style.color = "#f5c842";
-      }
+      // 👇 cancel animation first
+      cancelAnimationFrame(animRef.current);
       gameStateRef.current = "waiting";
       hasBetRef.current = false;
       setGameState("waiting");
@@ -301,7 +297,21 @@ export default function AviatorGame() {
       setStatusText(`NEXT IN ${countdown}s`);
       trailRef.current = [];
       particlesRef.current = [];
-      cancelAnimationFrame(animRef.current);
+      crashPointRef.current = null; // 👈 clear crash point
+
+      // 👇 reset multiplier display
+      const multEl = document.getElementById("av-mult-display");
+      if (multEl) {
+        multEl.textContent = "WAITING...";
+        multEl.style.fontSize = "24px";
+        multEl.style.color = "#f5c842";
+      }
+
+      // 👇 reset button
+      const btnEl = document.getElementById("av-action-btn");
+      if (btnEl) btnEl.textContent = "PLACE BET";
+
+      // 👇 start waiting animation
       drawWaiting();
     });
 
